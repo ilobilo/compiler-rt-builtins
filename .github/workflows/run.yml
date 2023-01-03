@@ -1,0 +1,30 @@
+name: Download compiler-rt source
+on: [push, workflow_dispatch]
+jobs:
+  install-headers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: sudo apt install subversion -y
+
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Git config
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Remove old source
+        run: rm -rf compiler-rt
+
+      - name: Download compiler-rt source
+        run: svn checkout https://github.com/llvm/llvm-project/trunk/compiler-rt/lib/builtins
+
+      - name: Push
+        run: |
+          git config user.name 'ilobilo'
+          git config user.email 'ilobilo@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ilobilo/libstdcxx-headers.git
+          git fetch --all
+          git add .
+          git commit -m "Upload headers [ci skip]"
+          git push origin master
