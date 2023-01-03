@@ -9,10 +9,10 @@ target_compiler = meson.get_compiler('cpp')
 # Process Build Options #
 #########################
 
-enable_werror = get_option('enable-werror')
-enable_pedantic_error = get_option('enable-pedantic-error')
-force_32_bit = get_option('force-32-bit')
-skip_atomic_builtins = get_option('compiler-rt-exclude-atomic-builtins')
+force_32_bit = get_option('force_32_bit')
+enable_pedantic_error = get_option('enable_pedantic_error')
+enable_werror = get_option('enable_werror')
+skip_atomic_builtins = get_option('compiler_rt_exclude_atomic_builtins')
 
 #############################
 # Initialize Compiler Flags #
@@ -281,6 +281,11 @@ x86_64_files = files(
 	'builtins/x86_64/floatundixf.S',
 )
 
+aarch64_files = files(
+	'builtins/cpu_model.c',
+	'builtins/aarch64/fp_mode.c'
+)
+
 arm_files = files(
 	'builtins/arm/fp_mode.c',
 	'builtins/arm/bswapdi2.S',
@@ -468,6 +473,7 @@ if target_architecture == 'arm'
 
 elif target_architecture == 'aarch64' or target_architecture == 'arm64'
 	compiler_rt_target_files += [
+		aarch64_files,
 		generic_tf_sources,
 		generic_nonx86_64_sources,
 		generic_nonarm_sources
@@ -492,7 +498,21 @@ endif
 # Dependency #
 ##############
 
-compiler_rt_builtins_dep = declare_dependency(
-	sources: compiler_rt_target_files,
-	compile_args: [builtins_target_compiler_args, '-D__ELF__']
+args = [builtins_target_compiler_args, '-D__ELF__']
+
+compiler_rt_builtins_lib = static_library('compiler_rt_builtins',
+    sources : compiler_rt_target_files,
+    include_directories : 'include',
+	c_args : args,
+	cpp_args : args
 )
+
+compiler_rt_builtins_dep = declare_dependency(link_with : compiler_rt_builtins_lib)
+
+# To use your own assert.h for cpu_model.c
+compiler_rt_builtins_src_dep = declare_dependency(sources : compiler_rt_target_files, compile_args : args)
+
+if meson.version().version_compare('>=0.54.0')
+    meson.override_dependency('compiler_rt_builtins', compiler_rt_builtins_dep)
+    meson.override_dependency('compiler_rt_builtins_src', compiler_rt_builtins_src_dep)
+endif
