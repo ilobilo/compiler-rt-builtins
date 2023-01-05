@@ -9,10 +9,12 @@ target_compiler = meson.get_compiler('cpp')
 # Process Build Options #
 #########################
 
+custom_includes = get_option('custom_includes')
 force_32_bit = get_option('force_32_bit')
 enable_pedantic_error = get_option('enable_pedantic_error')
 enable_werror = get_option('enable_werror')
-skip_atomic_builtins = get_option('compiler_rt_exclude_atomic_builtins')
+skip_cpu_model = get_option('exclude_cpu_model')
+skip_atomic_builtins = get_option('exclude_atomic_builtins')
 
 #############################
 # Initialize Compiler Flags #
@@ -257,7 +259,6 @@ nonbaremetal_files = files(
 )
 
 x86_files = files(
-	'builtins/cpu_model.c',
 	'builtins/divxc3.c',
 	'builtins/fixxfdi.c',
 	'builtins/fixxfti.c',
@@ -279,11 +280,6 @@ x86_64_files = files(
 	'builtins/x86_64/floatundidf.S',
 	'builtins/x86_64/floatundisf.S',
 	'builtins/x86_64/floatundixf.S',
-)
-
-aarch64_files = files(
-	'builtins/cpu_model.c',
-	'builtins/aarch64/fp_mode.c'
 )
 
 arm_files = files(
@@ -410,6 +406,10 @@ thumb1_file_group = [
 	arm_thumb1_files,
 ]
 
+aarch64_files = files(
+	'builtins/aarch64/fp_mode.c'
+)
+
 atomic_files = files(
 	'builtins/atomic.c'
 )
@@ -445,6 +445,11 @@ endif
 
 if not skip_atomic_builtins
 	compiler_rt_target_files += atomic_files
+endif
+
+if not skip_cpu_model
+	x86_files += files('builtins/cpu_model.c')
+	aarch64_files += files('builtins/cpu_model.c')
 endif
 
 if target_architecture == 'arm'
@@ -499,17 +504,24 @@ endif
 ##############
 
 args = [builtins_target_compiler_args, '-D__ELF__']
-
-compiler_rt_builtins_lib = static_library('compiler_rt_builtins',
-    sources : compiler_rt_target_files,
-    include_directories : 'include',
-	c_args : args,
-	cpp_args : args
-)
+compiler_rt_builtins_lib = [ ]
+if custom_includes != ''
+	args += '-I' + custom_includes
+	compiler_rt_builtins_lib = static_library('compiler_rt_builtins',
+		sources : compiler_rt_target_files,
+		c_args : args,
+		cpp_args : args
+	)
+else
+	compiler_rt_builtins_lib = static_library('compiler_rt_builtins',
+		sources : compiler_rt_target_files,
+		include_directories : 'include',
+		c_args : args,
+		cpp_args : args
+	)
+endif
 
 compiler_rt_builtins_dep = declare_dependency(link_with : compiler_rt_builtins_lib)
-
-# To use your own assert.h for cpu_model.c
 compiler_rt_builtins_src_dep = declare_dependency(sources : compiler_rt_target_files, compile_args : args)
 
 if meson.version().version_compare('>=0.54.0')

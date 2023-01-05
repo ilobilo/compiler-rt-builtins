@@ -1,4 +1,6 @@
+option('custom_includes', type : 'string', value : '', description : 'use custom include dir for headers')
 option('force_32_bit', type : 'boolean', value : false, description : '-m32')
 option('enable_pedantic_error', type : 'boolean', value : false, description : '-Wpedantic')
 option('enable_werror', type : 'boolean', value : false, description : '-Werror')
-option('compiler_rt_exclude_atomic_builtins', type : 'boolean', value : true, description : 'exclude atomic builtins')
+option('exclude_cpu_model', type : 'boolean', value : true, description : 'exclude builtins/cpu_model.c (if false, it needs assert.h)')
+option('exclude_atomic_builtins', type : 'boolean', value : true, description : 'exclude atomic builtins')
