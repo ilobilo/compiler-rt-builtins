@@ -17,7 +17,11 @@ jobs:
         run: rm -rf builtins
 
       - name: Download compiler-rt builtins source
-        run: svn checkout https://github.com/llvm/llvm-project/trunk/compiler-rt/lib/builtins
+        run: |
+          git clone -n --depth=1 --filter=tree:0 https://github.com/llvm/llvm-project
+          git -C llvm-project sparse-checkout set --no-cone compiler-rt
+          git -C llvm-project checkout
+          mv llvm-project/compiler-rt/lib/builtins .
 
       - name: Push
         run: |
@@ -25,6 +29,6 @@ jobs:
           git config user.email 'ilobilo@users.noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/ilobilo/compiler-rt-builtins
           git fetch --all
-          git add .
+          git add builtins
           git commit -m "Upload builtins [ci skip]"
           git push origin master
